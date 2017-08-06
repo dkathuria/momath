@@ -69,8 +69,8 @@ P5Behavior.prototype.drawMatrix = function(matrix, size){
     xVal = 0;
     yVal += size;
   }
-  if (counter >= COUNTERPOINT + 2){
-    //   console.log("draw path please");
+  if (counter > COUNTERPOINT +queue.length){
+
       pb.drawPath();
   }
 }
@@ -86,6 +86,14 @@ P5Behavior.prototype.drawWall = function(user){
       numWalls++;
     }
   }
+
+  if (vMatrix[row][col] === 0 || vMatrix[row][col] === 4){
+    if (!user.hasOwnProperty("changed")) user.changed = 0;
+    if (user.changed < 5 && numWalls < MAXWALLS) {
+      user.changed++;
+      vMatrix[row][col] = 1;
+    }
+  }
 }
 
 
@@ -97,13 +105,13 @@ P5Behavior.prototype.drawPath = function(){ //coordinates are indexes, not x/y v
         return indexToRowCol(index);
       });
   } else {
-    //   console.log(result);
+
       var coordinates = result.map((node) => {
           return [node.x, node.y];
       });
   }
 
-  // console.log(indexes);
+
   for (var n = 0; n < coordinates.length - 2; n++){
     var startY = coordinates[n][0] * BLOCKSIZE + centerOffset;
     var startX = coordinates[n][1] * BLOCKSIZE + centerOffset;
@@ -139,7 +147,7 @@ function generateMatrix(){
   return matrix;
 }
 
-var COUNTERPOINT = 300
+var COUNTERPOINT = 100
 
 /*
 *   Required pb functions
@@ -147,52 +155,66 @@ var COUNTERPOINT = 300
 
 pb.setup = function (p) {
   matrix = generateMatrix();
+  vMatrix = generateMatrix();
   // var grid = new PF.Grid(matrix);
   // var finder = new PF.AStarFinder();
   // var path = finder.findPath(9, 3, 9, 1, 4grid);
 
 };
-
+var length = 0;
 pb.draw = function (floor, p) {
   if(gridStates.length > 0){
-      counter = (counter + 1)%(gridStates.length + COUNTERPOINT);
+      counter = (counter + 1)%( 2 * length + COUNTERPOINT);
   } else {
       counter = counter + 1;
   }
   console.log(counter);
-  console.log("gridStates=");
-  console.log(gridStates.length);
+
   this.clear();
   for (let u in floor.users) {
     pb.drawWall(floor.users[u]);
   }
 
   if (floor.users.length > 0) console.log(floor.users);
-
   pb.drawMatrix(matrix, BLOCKSIZE);
   if (counter===COUNTERPOINT) {
+    gridStates = [];
     console.log(matrix);
     testAlgorithm();
     console.log("ALGOTESTED");
+    length = queue.length;
+    // evaluate(gridStates[0]);
 } else if (counter > COUNTERPOINT){
-    evaluate(gridStates[counter - COUNTERPOINT]);
+    var coordinate = queue.shift();
+    if (coordinate) {
+        matrix[coordinate[0]][coordinate[1]] = 3;
+    }
 }
 
   // bruteForce(9, 3);
   // pb.drawSensors(floor.sensors);
 };
 
-function evaluate(state){
-    for (var i = 0; i < matrix.length; i++) {
-        for (var j = 0; j < matrix[i].length; j++){
-            if((!(i == START.x && j == START.y) && !(i == END.x && j == END.y)){
-                if (state[i][j].visited) {
-                matrix[i][j] = 3;
-                }
-            }
-        }
-    }
-}
+var queue = [];
+var vMatrix = [];
+
+// function evaluate(state){
+//     console.log("matrix is changed");
+//     if (counter > COUNTERPOINT) {
+//     for (var i = 0; i < matrix.length; i++) {
+//         for (var j = 0; j < matrix[i].length; j++){
+//             if((!(i == START.x && j == START.y) && !(i == END.x && j == END.y)){
+//                 if (state[i][j].visited) {
+//                 // vMatrix[i][j] = 3;
+//                 // queue.push([i,j]);
+//                 }
+//             }
+//         }
+//     }
+// }
+//     console.log("evaluates");
+//     console.log(state);
+// }
 
 var gridStates = [];
 var result;
@@ -342,6 +364,7 @@ var astar = {
                 if(openList[i].f < openList[lowInd].f) { lowInd = i; }
             }
             var currentNode = openList[lowInd];
+            queue.push([currentNode.x, currentNode.y])
 
             // End case -- result has been found, return the traced path
             if(currentNode == end) {
@@ -351,12 +374,13 @@ var astar = {
                     ret.push(curr);
                     curr = curr.parent;
                 }
-                gridStates.push(grid);
                 return ret.reverse();
             }
 
             // Normal case -- move currentNode from open to closed, process each of its neighbors
             openList = takeAway(openList, lowInd);
+            console.log(grid);
+            gridStates.push(grid);
             currentNode.closed = true;
 
             var neighbors = astar.neighbors(grid, currentNode);
@@ -380,6 +404,7 @@ var astar = {
                     gScoreIsBest = true;
                     neighbor.h = heuristic(neighbor.pos, end.pos);
                     neighbor.visited = true;
+
                     openList.push(neighbor);
                 }
                 else if(gScore < neighbor.g) {
@@ -395,8 +420,9 @@ var astar = {
                     neighbor.f = neighbor.g + neighbor.h;
                     neighbor.debug = "F: " + neighbor.f + "<br />G: " + neighbor.g + "<br />H: " + neighbor.h;
                 }
+
             }
-            gridStates.push(grid);
+
         }
 
         // No result was found -- empty array signifies failure to find path
