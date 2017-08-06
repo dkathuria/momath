@@ -59,19 +59,49 @@ export default class P5Behavior {
     this.p5.ellipse(user.x, user.y, 31);
   }
 
-  /* Draw the walls */
-  drawWall(wall: object) {
+  drawMatrix(matrix: any[], size: number, user: User){
+    var xVal = 0, yVal = 0;
     this.p5.fill(255);
     this.p5.noStroke();
-    this.p5.ellipse(wall.x, wall.y, 24);
+    this.p5.ellipse(xVal, yVal, 24);
 
     this.p5.noFill();
     this.p5.stroke(68);
     this.p5.strokeWeight(1);
-    this.p5.ellipse(wall.x, wall.y, 31);
-    // console.log("wall: ", wall.x, " - ", wall.y);
-  }
+    this.p5.ellipse(xVal, yVal, 31);  
 
+    for (var row in matrix){
+      for (var col in matrix[row]){
+        this.p5.fill(152);
+        this.p5.noStroke();
+        this.p5.rect(xVal, yVal, size, size);
+
+        var ele = matrix[row][col];
+        // console.log(ele);
+        switch(ele){
+          case 1:
+            this.p5.fill(0,128,0);
+            break;
+          case 2:
+            this.p5.fill(255,0,0);
+            break;
+          case 3:
+            this.p5.fill(135, 206, 250);
+            break;
+          default:
+            this.p5.fill(255);
+            break;
+        }        
+        this.p5.rect(xVal+1, yVal+1, size-2, size-2);
+        this.p5.fill(0, 102, 153);
+        this.p5.text(ele, xVal+1, yVal+1, size-4, size-4);
+        xVal += size;
+      }
+      xVal = 0;
+      yVal += size;
+    }
+  }
+ 
   /* Draw a grid of sensors, using the current drawing style */
   drawSensors(sensors: Sensor.Grid) {
     this.p5.applyMatrix(Display.sensorWidth, 0, 0, Display.sensorHeight, 0, 0);
