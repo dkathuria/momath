@@ -18,9 +18,13 @@ var END = {
 };
 
 var matrix = [];
+var vMatrix = [];
 var links = {};
 var indexes = [];
 var numWalls = 0;
+var drawQueue = [];
+var timer = 0;
+var searching = false;
 
 
 /*
@@ -37,7 +41,6 @@ P5Behavior.prototype.drawMatrix = function(matrix, size){
       this.p5.rect(xVal, yVal, size, size);
 
       var ele = matrix[row][col];
-      // console.log(ele);
       switch(ele){
         case 1:
           this.p5.fill(125);
@@ -57,23 +60,30 @@ P5Behavior.prototype.drawMatrix = function(matrix, size){
       }        
       this.p5.rect(xVal+1, yVal+1, size-2, size-2);
       this.p5.fill(0, 102, 153);
-      this.p5.text(rowColToIndex(row, parseInt(col)), xVal+1, yVal+1, size-4, size-4);
+      this.p5.text(ele, xVal+1, yVal+1, size-4, size-4);
       xVal += size;
     }
     xVal = 0;
     yVal += size;
   }
-  pb.drawPath();
+  // pb.drawPath();
 }
 
 P5Behavior.prototype.drawWall = function(user){
   var row = Math.floor(user.y/BLOCKSIZE);
   var col = Math.floor(user.x/BLOCKSIZE);
-  if (matrix[row][col] === 0 || matrix[row][col] === 3){
+  if ((matrix[row][col] === 0 || matrix[row][col] === 3) && !searching){
     if (!user.hasOwnProperty("changed")) user.changed = 0;
     if (user.changed < 5 && numWalls < MAXWALLS) {
       user.changed++;
       matrix[row][col] = 1;
+      numWalls++;
+    }
+  } if ((vMatrix[row][col] === 0 || vMatrix[row][col] === 3) && !searching){
+    if (!user.hasOwnProperty("changed")) user.changed = 0;
+    if (user.changed < 5 && numWalls < MAXWALLS) {
+      user.changed++;
+      vMatrix[row][col] = 1;
       numWalls++;
     }
   }
@@ -85,16 +95,12 @@ P5Behavior.prototype.drawPath = function(){ //coordinates are indexes, not x/y v
     return indexToRowCol(index);
   });
 
-  console.log(indexes);
-
   for (var n = 0; n < coordinates.length - 1; n++){
     var startY = coordinates[n][0] * BLOCKSIZE + centerOffset;
     var startX = coordinates[n][1] * BLOCKSIZE + centerOffset;
     var endY = coordinates[n+1][0] * BLOCKSIZE + centerOffset;
     var endX = coordinates[n+1][1] * BLOCKSIZE + centerOffset;
 
-    console.log(coordinates);
-    console.log(startX, startY , " ---> ", endX, endY);
     this.p5.stroke(255,255,0);
     this.p5.strokeWeight(5);  
     this.p5.line(startX, startY, endX, endY);
@@ -115,15 +121,23 @@ function breadthFirst(x, y){
     var neighborIndex = neighbors.shift();
     var xVal = indexToRowCol(neighborIndex)[0];
     var yVal = indexToRowCol(neighborIndex)[1];
-    if (matrix[xVal][yVal] === 2) done = true;
+    // if (matrix[xVal][yVal] === 2) done = true;
+    // else if (matrix[xVal][yVal] === 0 && matrix[xVal][yVal] !== 4) {
+    //   matrix[xVal][yVal] = 3;
+    // }
+    if (vMatrix[xVal][yVal] === 2) done = true;
     else if (matrix[xVal][yVal] === 0 && matrix[xVal][yVal] !== 4) {
-      matrix[xVal][yVal] = 3;
-    }for (var neighbor in neighbors){
+      drawQueue.push([xVal, yVal]);
+      if (xVal === 9) console.log(yVal);
+      vMatrix[xVal][yVal] = 3;
+    }
+
+    for (var neighbor in neighbors){
       addNeighbors(xVal, yVal, neighbors);
     }
   }
 
-  console.log(neighbors);
+  // console.log(neighbors);
 }
 
 function addNeighbors(x, y, set){
@@ -140,7 +154,8 @@ function addNeighbors(x, y, set){
     var newY = y + directions[d][1]
     var newIndex = rowColToIndex(newX, newY);
     if (newX >= 0 && newX < LEVELSIZE && newY >= 0 && newY < LEVELSIZE){
-      if ((matrix[newX][newY] === 0 || matrix[newX][newY] === 2) && !set.includes(newIndex)){
+      // if ((matrix[newX][newY] === 0 || matrix[newX][newY] === 2) && !set.includes(newIndex)){
+      if ((vMatrix[newX][newY] === 0 || vMatrix[newX][newY] === 2) && !set.includes(newIndex)){
         if (!links.hasOwnProperty(newIndex)){
           links[newIndex] = [];
         }links[newIndex].push(index);
@@ -187,6 +202,7 @@ function resetWalls(){
   for (var row=0; row < LEVELSIZE; row++){
     for (var col=0; col < LEVELSIZE; col++){
       if(matrix[row][col] === 1) matrix[row][col] = 0;
+      if(vMatrix[row][col] === 1) vMatrix[row][col] = 0;
     }
   }numWalls = 0;
 }
@@ -195,6 +211,7 @@ function resetSearch(){
   for (var row=0; row < LEVELSIZE; row++){
     for (var col=0; col < LEVELSIZE; col++){
       if(matrix[row][col] === 3) matrix[row][col] = 0;
+      if(vMatrix[row][col] === 3) vMatrix[row][col] = 0;
     }
   }
 }
@@ -214,17 +231,27 @@ function indexToRowCol(index){
 
 pb.setup = function (p) {
   matrix = generateMatrix();
+  vMatrix = generateMatrix();
+  breadthFirst(9, 3);
+  backTrack();
+  searching = true;    
   find();
 };
 
 function find(){
   setInterval(() => {
-    resetSearch();
-    links = {};
-    indexes = [];
-    breadthFirst(9, 3);
-    backTrack();
-  }, 3000);  
+    if (!searching){
+      searching = true;
+      resetSearch();
+      links = {};
+      indexes = [];
+      drawQueue = [];
+      breadthFirst(9, 3);
+      backTrack();
+      console.log(drawQueue);
+      // searching = true;
+    }
+  }, 10000);  
 }
 
 pb.draw = function (floor) {
@@ -232,10 +259,32 @@ pb.draw = function (floor) {
   for (let u in floor.users) {
     pb.drawWall(floor.users[u]);
   }
-
-  if (floor.users.length > 0) console.log(floor.users);
-
   pb.drawMatrix(matrix, BLOCKSIZE); 
+
+  if (searching){
+    // console.log(drawQueue);
+    var coords = [];
+    for(var i = 0; i < 5; i++){
+      if (drawQueue.length > 0);
+        coords.push(drawQueue.shift());
+    }
+    for (var c in coords){
+      var coord = coords[c];
+      if (coord){
+        console.log(coord);
+        matrix[coord[0]][coord[1]] = 3;
+      }
+    }
+
+    // var coord = drawQueue.shift();
+    // matrix[coord[0]][coord[1]] = 3;
+  }if (!searching){
+    pb.drawPath();
+  }if (drawQueue.length === 0){
+    searching = false;  
+    pb.drawPath();
+  }
+
   // pb.drawSensors(floor.sensors);
 };
 
