@@ -3,7 +3,8 @@
 - Project category: Math Square Behavior
 - Sadman Fahmid and Dhruv Kathuria
 
-* ![aStar](images/aStar.gif)
+ ![aStar](images/aStar.gif)
+ ![breadthFirst](images/breadth.gif)
 
 ## The Math
 
@@ -29,7 +30,7 @@ The code as it stands also provides easy addition of other algorithms such as Di
 The largest issue was in rendering the individual stages of the algorithm. The algorithms are designed to be run once and output the solution of the shortest path. Visualizing the algorithm in accordance with the board rendering paradigm forced us to take a two pronged approach of using counters/queues and a virtual matrix to determine the intermediate steps of the algorithms and output the visualization of these intermediary positions. 
 
 
-## Install
+## Running
 
 ### Requirements
 
@@ -40,14 +41,6 @@ Download or clone this repository locally.
 On the command line, navigate to the downloaded math-square folder and run
 ```
 npm install
-```
-This will install all of the necessary dependencies.
-
-### Running
-
-To run your (or any) behavior in Electron, run the following on command line in your math-square folder:
-
-```
 npm run-script dev
 ```
 
