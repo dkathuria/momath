@@ -3,7 +3,7 @@
 - Project category: Math Square Behavior
 - Sadman Fahmid and Dhruv Kathuria
 
-* [aStar](images/aStar.gif)
+* ![aStar](images/aStar.gif)
 
 ## The Math
 
